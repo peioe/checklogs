@@ -12,6 +12,7 @@ checklogexe_path = "~/.wine/drive_c/Program Files/Exact Audio Copy/CheckLog.exe"
 logs_goodlist = []
 logs_badlist = []
 logs_ignoredlist = []
+logs_xldlist = []
 logs_errorlist = []
 
 def shellquote(s):
@@ -39,7 +40,7 @@ def process_log(log_full_path):
         logs_errorlist.append(log_full_path)
 
 def main():
-    global logs_goodlist, logs_badlist, logs_ignored_list, logs_errorlist
+    global logs_goodlist, logs_badlist, logs_ignored_list, logs_errorlist, logs_xldlist
     parser = OptionParser(usage="usage: %prog [options] top_directory")
     parser.add_option("-i", "--ignore-ac", action="store_false", dest="ignore_ac", default=True,
                   help="ignore logs named 'audiochecker.log'(default is True)")
@@ -58,17 +59,27 @@ def main():
             filename, file_extension = os.path.splitext(file_full_path)
             file_extension = file_extension.lower()
             if file_extension == ".log" and not "audiochecker.log" in file:
+                fo = open(file_full_path, 'r')
+                content = fo.read()
                 found_logs += 1
-                found_logs_list.append(file_full_path)
+                if "X Lossless Decoder version" in content:
+                    logs_xldlist.append(file_full_path)
+                else:
+                    found_logs_list.append(file_full_path)
                 
     print "Found %d logs. Running through CheckLog.exe ..." % found_logs
     for log in found_logs_list:
         process_log(log)
-    print "Found %d good log(s), %d edited log(s) and skipped %d log(s) (no checksum)." % (len(logs_goodlist), len(logs_badlist), len(logs_ignoredlist))
+    print "Found %d good log(s), %d edited log(s) and skipped %d log(s) (%d XLD logs and %d had no checksum)." % (len(logs_goodlist), len(logs_badlist), len(logs_ignoredlist)+len(logs_xldlist), len(logs_xldlist), len(logs_ignoredlist))
     logs_goodlist.sort()
     logs_badlist.sort()
     logs_ignoredlist.sort()
     logs_errorlist.sort()
+    logs_xldlist.sort()
+    if len(logs_xldlist) != 0:
+        print "XLD logs (ignored):"
+        for log in logs_xldlist:
+            print log
     if len(logs_goodlist) != 0:
         print "Good logs:"
         for log in logs_goodlist:
