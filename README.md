@@ -1,2 +1,6 @@
 # checklogs
-checklogs.py is a simple script that finds all .log files in a directory and runs them through EAC's CheckLog.exe using wine.
+Simple python script to recursively find all .log files in a directory and run them through EAC's CheckLog.exe to find out if they have been edited.
+
+## Usage
+Edit the options at the top of the script and then:<br/>
+>checklogs.py [options] top_directory
