@@ -12,6 +12,7 @@ checklogexe_path = "~/.wine/drive_c/Program Files/Exact Audio Copy/CheckLog.exe"
 logs_goodlist = []
 logs_badlist = []
 logs_ignoredlist = []
+logs_errorlist = []
 
 def shellquote(s):
     return "'" + s.replace("'", "'\\''") + "'"
@@ -19,7 +20,7 @@ def shellquote(s):
 checklogexe_path = checklogexe_path.replace(" ", "\ ")
 
 def process_log(log_full_path):
-    global logs_goodlist, logs_badlist, logs_ignored_list, checklogexe_path
+    global logs_goodlist, logs_badlist, logs_ignored_list, logs_errorlist, checklogexe_path
     log_full_path = log_full_path.replace(" ", "\ ")
     log_full_path = log_full_path.replace("(", "\(")
     log_full_path = log_full_path.replace("'", "\\\'")
@@ -30,15 +31,6 @@ def process_log(log_full_path):
     
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=None, shell=True)
     output = process.stdout.read()
-    #output = output.replace("\x1b[?1h\x1b=Log Integrity Checker   (C) 2010 by Andre Wiethoff\r\r\n\r\r\n1. ", "")
-    #output = output.replace("Script started, file is tmpfile\n", "")
-    #output = output.replace("\r\r\n\x1b[?1l\x1b>Script done, file is tmpfile\n", "")
-    #if output == "Log entry was modified, checksum incorrect!":
-    #    logs_badlist.append(log_full_path)
-    #elif output == "Log entry is fine!":
-    #    logs_goodlist.append(log_full_path)
-    #elif output == "Log entry has no checksum!":
-    #    logs_ignoredlist.append(log_full_path)
     if "Log entry has no checksum!" in output:
         logs_ignoredlist.append(log_full_path)
     if "Log entry was modified, checksum incorrect!" in output:
@@ -46,10 +38,10 @@ def process_log(log_full_path):
     elif "Log entry is fine!" in output:
         logs_goodlist.append(log_full_path)
     else:
-        print command
+        logs_errorlist.append(log_full_path)
 
 def main():
-    global logs_goodlist, logs_badlist, logs_ignored_list
+    global logs_goodlist, logs_badlist, logs_ignored_list, logs_errorlist
     parser = OptionParser(usage="usage: %prog [options] top_directory")
     (options, args) = parser.parse_args()
     if len(args) < 1:
@@ -72,16 +64,23 @@ def main():
     for log in found_logs_list:
         process_log(log)
     print "Found %d good log(s), %d edited log(s) and skipped %d log(s) (no checksum)." % (len(logs_goodlist), len(logs_badlist), len(logs_ignoredlist))
-    print "Good logs:"
     logs_goodlist.sort()
-    for log in logs_goodlist:
-        print log
-    print "Ignored logs (no checksum):"
-    for log in logs_ignoredlist:
-        print log
-    print "BAD (edited) logs:"
-    for log in logs_badlist:
-        print log
+    if len(logs_goodlist) != 0:
+        print "Good logs:"
+        for log in logs_goodlist:
+            print log
+    if len(logs_ignoredlist) != 0:
+        print "Ignored logs (no checksum):"
+        for log in logs_ignoredlist:
+            print log
+    if len(logs_badlist) != 0:
+        print "BAD (edited) logs:"
+        for log in logs_badlist:
+            print log
+    if len(logs_errorlist) != 0:
+        print "There was an error while processing:"
+        for log in logs_errorlist:
+            print log
     #os.remove("tmpfile")
     
 if __name__ == '__main__':
