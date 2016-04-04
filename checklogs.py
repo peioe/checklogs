@@ -26,14 +26,12 @@ def process_log(log_full_path):
     log_full_path = log_full_path.replace("'", "\\\'")
     log_full_path = log_full_path.replace(")", "\)")
     log_full_path = log_full_path.replace("&", "\&")
-    
     command = 'script -q -c "wine-development %s %s" /dev/null' % (checklogexe_path, log_full_path)
-    
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=None, shell=True)
     output = process.stdout.read()
     if "Log entry has no checksum!" in output:
         logs_ignoredlist.append(log_full_path)
-    if "Log entry was modified, checksum incorrect!" in output:
+    elif "Log entry was modified, checksum incorrect!" in output:
         logs_badlist.append(log_full_path)
     elif "Log entry is fine!" in output:
         logs_goodlist.append(log_full_path)
@@ -43,6 +41,9 @@ def process_log(log_full_path):
 def main():
     global logs_goodlist, logs_badlist, logs_ignored_list, logs_errorlist
     parser = OptionParser(usage="usage: %prog [options] top_directory")
+    parser.add_option("-i", "--ignore-ac", action="store_false", dest="ignore_ac", default=True,
+                  help="ignore logs named 'audiochecker.log'(default is True)")
+
     (options, args) = parser.parse_args()
     if len(args) < 1:
         parser.error("you need to specify a top directory")
@@ -56,7 +57,7 @@ def main():
             file_full_path = os.path.join(root, file)
             filename, file_extension = os.path.splitext(file_full_path)
             file_extension = file_extension.lower()
-            if file_extension == ".log":
+            if file_extension == ".log" and not "audiochecker.log" in file:
                 found_logs += 1
                 found_logs_list.append(file_full_path)
                 
@@ -65,6 +66,9 @@ def main():
         process_log(log)
     print "Found %d good log(s), %d edited log(s) and skipped %d log(s) (no checksum)." % (len(logs_goodlist), len(logs_badlist), len(logs_ignoredlist))
     logs_goodlist.sort()
+    logs_badlist.sort()
+    logs_ignoredlist.sort()
+    logs_errorlist.sort()
     if len(logs_goodlist) != 0:
         print "Good logs:"
         for log in logs_goodlist:
@@ -81,7 +85,6 @@ def main():
         print "There was an error while processing:"
         for log in logs_errorlist:
             print log
-    #os.remove("tmpfile")
     
 if __name__ == '__main__':
 	main()
